@@ -1,295 +1,370 @@
-﻿using System.Globalization;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
-using System.Xml;
-using System.Xml.Linq;
 
 namespace Jabber.Dom;
 
+[DebuggerDisplay("{StartTag(),nq}")]
 public record class Element
 {
-	private Element? _parent;
-	private string _localName = default!;
-	private string? _prefix;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Element? _parent;
 
-	private readonly List<Element> _children;
-	private readonly Dictionary<string, string> _attributes;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string _localName = default!;
 
-	public Element(string tagName, string? xmlns = default, object? value = default)
-	{
-		_children = [];
-		_attributes = [];
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private string? _prefix;
 
-		TagName = tagName;
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private List<Element> _children;
 
-		if (xmlns != null)
-		{
-			if (Prefix != null)
-				SetNamespace(Prefix, xmlns);
-			else
-				SetNamespace(xmlns);
-		}
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private Dictionary<string, string> _attributes;
 
-		if (value != null)
-			Value = Convert.ToString(value, CultureInfo.InvariantCulture);
-	}
+    [Experimental("XMPP001")]
+    ~Element()
+    {
+        _localName = null!;
+        _prefix = null!;
 
-	public Element(Element parent, string tagName, string? xmlns = default, object? value = default) : this(tagName, xmlns, value)
-	{
-		ArgumentNullException.ThrowIfNull(parent);
-		Parent = parent;
-	}
+        if (_children != null)
+        {
+            foreach (var element in _children)
+                element._parent = null;
 
-	public Element(Element other)
-	{
-		_children = [];
-		_attributes = [];
-		_localName = other._localName;
-		_prefix = other._prefix;
+            _children.Clear();
+            _children = null!;
+        }
 
-		lock (other._attributes)
-		{
-			foreach (var (key, value) in other._attributes)
-				_attributes[key] = value;
-		}
+        _attributes?.Clear();
+        _attributes = null!;
+    }
 
-		lock (other._children)
-		{
-			foreach (var element in other._children)
-				_children.Add(element with { _parent = this });
-		}
+    public Element(string tagName, string? xmlns = default, object? value = default)
+    {
+        _children = [];
+        _attributes = [];
 
-		Value = other.Value;
-	}
+        TagName = tagName;
 
-	public bool IsRootElement
-		=> _parent == null;
+        if (xmlns != null)
+        {
+            if (Prefix != null)
+                SetNamespace(Prefix, xmlns);
+            else
+                SetNamespace(xmlns);
+        }
 
-	public string? Value
-	{
-		get;
-		set;
-	}
+        if (value != null)
+            Value = Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
 
-	public Element? Parent
-	{
-		get => _parent;
-		set
-		{
-			_parent?.RemoveChild(this);
-			value?.AddChild(this);
-		}
-	}
+    public Element(Element parent, string tagName, string? xmlns = default, object? value = default) : this(tagName, xmlns, value)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        Parent = parent;
+    }
 
-	public string? Prefix
-	{
-		get => _prefix;
-		set => _prefix = string.IsNullOrWhiteSpace(value) ? null : value;
-	}
+    public Element(Element other)
+    {
+        _children = [];
+        _attributes = [];
+        _localName = other._localName;
+        _prefix = other._prefix;
 
-	public string LocalName
-	{
-		get => _localName;
-		set
-		{
-			ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(LocalName));
-			_localName = value;
-		}
-	}
+        lock (other._attributes)
+        {
+            foreach (var (key, value) in other._attributes)
+                _attributes[key] = value;
+        }
 
-	public string TagName
-	{
-		get => _prefix == null ? _localName : string.Concat(_prefix, ':', _localName);
-		set
-		{
-			ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(TagName));
-			var ofs = value.IndexOf(':');
+        lock (other._children)
+        {
+            foreach (var element in other._children)
+                _children.Add(element with { _parent = this });
+        }
 
-			if (ofs > 0)
-				Prefix = value[0..ofs];
+        Value = other.Value;
+    }
 
-			LocalName = value[(ofs + 1)..];
-		}
-	}
+    public bool IsRootElement
+        => _parent == null;
 
-	public void Remove()
-		=> _parent?.RemoveChild(this);
+    public string? Value
+    {
+        get;
+        set;
+    }
 
-	public void AddChild(Element e)
-	{
-		if (e._parent != null)
-			e = e with { _parent = this };
+    public Element? Parent
+    {
+        get => _parent;
+        set
+        {
+            _parent?.RemoveChild(this);
+            value?.AddChild(this);
+        }
+    }
 
-		lock (_children)
-			_children.Add(e);
-	}
+    public string? Prefix
+    {
+        get => _prefix;
+        set => _prefix = string.IsNullOrWhiteSpace(value) ? null : value;
+    }
 
-	public void RemoveChild(Element e)
-	{
-		if (e._parent != this)
-			return;
+    public string LocalName
+    {
+        get => _localName;
+        set
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(LocalName));
+            _localName = value;
+        }
+    }
 
-		lock (_children)
-		{
-			_children.Remove(e);
-			e._parent = null;
-		}
-	}
+    public string TagName
+    {
+        get => _prefix == null ? _localName : string.Concat(_prefix, ':', _localName);
+        set
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(TagName));
+            var ofs = value.IndexOf(':');
 
-	public void SetAttribute(string name, object? value, string? format = default, IFormatProvider? formatter = default)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            if (ofs > 0)
+                Prefix = value[0..ofs];
 
-		if (value is null)
-			RemoveAttribute(name);
-		else
-		{
-			formatter ??= CultureInfo.InvariantCulture;
+            LocalName = value[(ofs + 1)..];
+        }
+    }
 
-			lock (_attributes)
-			{
-				string? rawValue;
-				if (value is IFormattable fmt) rawValue = fmt.ToString(format, formatter);
-				else if (value is IConvertible conv) rawValue = conv.ToString(formatter);
-				else rawValue = Convert.ToString(value, formatter);
-				_attributes[name] = rawValue ?? string.Empty;
-			}
-		}
-	}
+    public void Remove()
+        => _parent?.RemoveChild(this);
 
-	public string? GetAttribute(string name)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+    public void AddChild(Element e)
+    {
+        if (e._parent != null)
+            e = e with { _parent = this };
 
-		lock (_attributes)
-			return _attributes.GetValueOrDefault(name);
-	}
+        lock (_children)
+            _children.Add(e);
+    }
 
-	public void RemoveAttribute(string name)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+    public void RemoveChild(Element e)
+    {
+        if (e._parent != this)
+            return;
 
-		lock (_attributes)
-			_attributes.Remove(name);
-	}
+        lock (_children)
+        {
+            _children.Remove(e);
+            e._parent = null;
+        }
+    }
 
-	public string? GetNamespace(string? prefix = default)
-	{
-		var result = GetAttribute(string.IsNullOrWhiteSpace(prefix) ? "xmlns" : $"xmlns:{prefix}");
+    public void SetAttribute(string name, object? value, string? format = default, IFormatProvider? formatter = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-		if (result != null)
-			return result;
+        if (value is null)
+            RemoveAttribute(name);
+        else
+        {
+            formatter ??= CultureInfo.InvariantCulture;
 
-		return _parent?.GetNamespace(prefix);
-	}
+            lock (_attributes)
+            {
+                string? rawValue;
+                if (value is IFormattable fmt) rawValue = fmt.ToString(format, formatter);
+                else if (value is IConvertible conv) rawValue = conv.ToString(formatter);
+                else rawValue = Convert.ToString(value, formatter);
+                _attributes[name] = rawValue ?? string.Empty;
+            }
+        }
+    }
 
-	public void SetNamespace(string? namespaceURI)
-	{
-		ArgumentNullException.ThrowIfNull(namespaceURI);
-		SetAttribute("xmlns", namespaceURI);
-	}
+    public string? GetAttribute(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-	public void SetNamespace(string prefix, string? namespaceURI)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
-		ArgumentNullException.ThrowIfNull(namespaceURI);
-		SetAttribute($"xmlns:{prefix}", namespaceURI);
-	}
+        lock (_attributes)
+            return _attributes.GetValueOrDefault(name);
+    }
 
-	public Element? FirstChild
-	{
-		get
-		{
-			lock (_children)
-				return _children.FirstOrDefault();
-		}
-	}
+    public void RemoveAttribute(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-	public Element? LastChild
-	{
-		get
-		{
-			lock (_children)
-				return _children.LastOrDefault();
-		}
-	}
+        lock (_attributes)
+            _attributes.Remove(name);
+    }
 
-	public string? Namespace
-	{
-		get => GetNamespace(Prefix);
-		set
-		{
-			if (Prefix == null)
-				SetNamespace(value);
-			else
-				SetNamespace(Prefix, value);
-		}
-	}
+    public string? GetNamespace(string? prefix = default)
+    {
+        var result = GetAttribute(string.IsNullOrWhiteSpace(prefix) ? "xmlns" : $"xmlns:{prefix}");
 
-	public IReadOnlyDictionary<string, string> Attributes
-	{
-		get
-		{
-			KeyValuePair<string, string>[] result;
+        if (result != null)
+            return result;
 
-			lock (_attributes)
-				result = [.. _attributes];
+        return _parent?.GetNamespace(prefix);
+    }
 
-			return result.ToDictionary(x => x.Key, x => x.Value).AsReadOnly();
-		}
-	}
+    public void SetNamespace(string? namespaceURI)
+    {
+        ArgumentNullException.ThrowIfNull(namespaceURI);
+        SetAttribute("xmlns", namespaceURI);
+    }
 
-	public IReadOnlyList<Element> Children
-	{
-		get
-		{
-			Element[] result;
+    public void SetNamespace(string prefix, string? namespaceURI)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+        ArgumentNullException.ThrowIfNull(namespaceURI);
+        SetAttribute($"xmlns:{prefix}", namespaceURI);
+    }
 
-			lock (_children)
-				result = [.. _children];
+    public Element? FirstChild
+    {
+        get
+        {
+            lock (_children)
+                return _children.FirstOrDefault();
+        }
+    }
 
-			return result.ToList().AsReadOnly();
-		}
-	}
+    public Element? LastChild
+    {
+        get
+        {
+            lock (_children)
+                return _children.LastOrDefault();
+        }
+    }
 
-	public void WriteTo(TextWriter textWriter, XmlFormatting formatting = XmlFormatting.Default)
-	{
-		using var writer = Xml.CreateWriter(textWriter, formatting);
-		Xml.WriteTree(this, writer, formatting);
-	}
+    public string? NamespaceURI
+    {
+        get => GetNamespace(Prefix);
+        set
+        {
+            if (Prefix == null)
+                SetNamespace(value);
+            else
+                SetNamespace(Prefix, value);
+        }
+    }
 
-	public void Save(Stream stream, XmlFormatting formatting = XmlFormatting.Default)
-	{
-		using var writer = new StreamWriter(stream, Encoding.UTF8, -1, true);
-		WriteTo(writer, formatting);
-	}
+    public IReadOnlyDictionary<string, string> Attributes
+    {
+        get
+        {
+            KeyValuePair<string, string>[] result;
 
-	public string StartTag()
-	{
-		var sb = new StringBuilder($"<{Xml.EncodeName(TagName)}");
+            lock (_attributes)
+                result = [.. _attributes];
 
-		foreach (var (key, value) in Attributes)
-			sb.AppendFormat(" {0}=\"{1}\"", Xml.EncodeName(key), Xml.EscapeAttribute(value));
+            return result.ToDictionary(x => x.Key, x => x.Value);
+        }
+    }
 
-		return sb.Append('>').ToString();
-	}
+    public void WriteTo(TextWriter textWriter, XmlFormatting formatting = XmlFormatting.Default)
+    {
+        using var writer = Xml.CreateWriter(textWriter, formatting);
+        Xml.WriteTree(this, writer, formatting);
+    }
 
-	public string EndTag()
-		=> $"<{Xml.EncodeName(TagName)}/>";
+    public void Save(Stream stream, XmlFormatting formatting = XmlFormatting.Default)
+    {
+        using var writer = new StreamWriter(stream, Encoding.UTF8, -1, true);
+        WriteTo(writer, formatting);
+    }
 
-	public override string ToString() => ToString(false);
+    public string StartTag()
+    {
+        var sb = new StringBuilder($"<{Xml.EncodeName(TagName)}");
 
-	public string ToString(bool indented)
-	{
-		var sb = new StringBuilder();
+        foreach (var (key, value) in Attributes)
+            sb.AppendFormat(" {0}=\"{1}\"", Xml.EncodeName(key), Xml.EscapeAttribute(value));
 
-		var formatting = XmlFormatting.Default;
+        return sb.Append('>').ToString();
+    }
 
-		if (indented)
-			formatting |= XmlFormatting.Indented;
+    public string EndTag()
+        => $"</{Xml.EncodeName(TagName)}>";
 
-		using (var sw = new StringWriter(sb))
-			WriteTo(sw, formatting);
+    public override string ToString() => ToString(false);
 
-		return sb.ToString();
-	}
+    public string ToString(bool indented)
+    {
+        var sb = new StringBuilder();
+
+        var formatting = XmlFormatting.Default;
+
+        if (indented)
+            formatting |= XmlFormatting.Indented;
+
+        using (var sw = new StringWriter(sb))
+            WriteTo(sw, formatting);
+
+        return sb.ToString();
+    }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public IReadOnlyList<Element> ChildNodes => Children();
+
+    public IReadOnlyList<Element> Children()
+    {
+        List<Element> result;
+
+        lock (_children)
+            result = [.. _children];
+
+        return result;
+    }
+
+    public IEnumerable<Element> Children(string tagName, string? namespaceURI = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        return ChildrenInternal(tagName, namespaceURI, false);
+    }
+
+    IEnumerable<Element> ChildrenInternal(string tagName, string? ns, bool once)
+    {
+        lock (_children)
+        {
+            foreach (var element in _children)
+            {
+                if (element.TagName == tagName && (ns == null || ns == element.NamespaceURI))
+                {
+                    yield return element;
+
+                    if (once)
+                        yield break;
+                }
+            }
+        }
+    }
+
+    public Element? Child(string tagName, string? namespaceURI = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        return ChildrenInternal(tagName, namespaceURI, true).FirstOrDefault();
+    }
+
+    public bool HasTag(string tagName, string? namespaceURI = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        return ChildrenInternal(tagName, namespaceURI, true).Any();
+    }
+
+    public Element SetTag(string tagName, string? namespaceURI = default, object? value = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        var el = new Element(tagName, namespaceURI, value);
+        AddChild(el);
+        return el;
+    }
+
+    public void RemoveTag(string tagName, string? namespaceURI = default)
+        => Child(tagName, namespaceURI)?.Remove();
 }

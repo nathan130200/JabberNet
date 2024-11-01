@@ -3,6 +3,7 @@ using System.Text;
 
 namespace Jabber;
 
+[DebuggerDisplay("{ToString(),nq}")]
 public record Jid
 {
 	[DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -34,12 +35,6 @@ public record Jid
 		set => _local = value;
 	}
 
-	public string? Resource
-	{
-		get => _resource;
-		set => _resource = value;
-	}
-
 	public string Domain
 	{
 		get => _domain;
@@ -55,7 +50,13 @@ public record Jid
 		}
 	}
 
-	public override string ToString()
+    public string? Resource
+    {
+        get => _resource;
+        set => _resource = value;
+    }
+
+    public override string ToString()
 	{
 		var sb = new StringBuilder();
 

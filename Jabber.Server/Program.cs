@@ -1,19 +1,20 @@
-﻿using Jabber;
-using Jabber.Dom;
+﻿using System.Diagnostics;
+using Jabber.Protocol;
 
-var el = new Element("stream:stream", Namespaces.Stream);
-el.SetNamespace(Namespaces.Client);
+namespace Jabber;
 
-var features = new Element("stream:features")
+internal class Program
 {
-	Parent = el
-};
+    static async Task Main(string[] args)
+    {
+        var stz = new Iq
+        {
+            Type = IqType.Result,
+            NamespaceURI = Namespaces.Client
+        };
 
-_ = new Element(features, "bind", Namespaces.Bind);
-_ = new Element(features, "session", Namespaces.Session);
+        var xml = stz.StartTag();
 
-using (var fs = File.Create("test.xml"))
-{
-	fs.SetLength(0);
-	el.Save(fs, XmlFormatting.Indented);
+        Debugger.Break();
+    }
 }

@@ -7,8 +7,4 @@
 		<RootNamespace>Jabber</RootNamespace>
 	</PropertyGroup>
 
-	<ItemGroup>
-	  <None Remove="Dom\omlnccpu.oqh~" />
-	</ItemGroup>
-
 </Project>
