@@ -10,8 +10,8 @@ namespace Jabber.Dom;
 
 public static class ElementFactory
 {
-    static readonly ConcurrentDictionary<Type, IEnumerable<XmppTagInfo>> s_ElementTypes = [];
-    static readonly IEnumerable<XmppTagInfo> s_Empty = [];
+    static readonly ConcurrentDictionary<Type, IEnumerable<XmppTagInfo>> s_ElementTypes = new();
+    static readonly IEnumerable<XmppTagInfo> s_Empty = Enumerable.Empty<XmppTagInfo>();
 
     static ElementFactory()
     {
@@ -53,7 +53,7 @@ public static class ElementFactory
 
     public static Type? GetTypeFromTag(string tagName, string? namespaceURI)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(tagName);
 
         if (GetSpecialElementType(tagName, namespaceURI, out var result))
             return result;
@@ -64,7 +64,7 @@ public static class ElementFactory
 
     public static Element CreateElement(string tagName, string? namespaceURI)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(tagName);
 
         Element result;
 
@@ -85,13 +85,19 @@ public static class ElementFactory
 }
 
 [DebuggerDisplay("Name={TagName}; Namespace={NamespaceURI}")]
-public readonly struct XmppTagInfo(string tagName, string? namespaceURI) : IEquatable<XmppTagInfo>
+public readonly struct XmppTagInfo : IEquatable<XmppTagInfo>
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public string TagName { get; } = tagName;
+    public string TagName { get; }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public string? NamespaceURI { get; } = namespaceURI;
+    public string? NamespaceURI { get; }
+
+    public XmppTagInfo(string tagName, string? namespaceURI)
+    {
+        TagName = tagName;
+        NamespaceURI = namespaceURI;
+    }
 
     public override int GetHashCode()
     {

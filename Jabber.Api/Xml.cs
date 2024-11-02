@@ -14,9 +14,6 @@ public static class Xml
     [ThreadStatic]
     private static string? s_NewLineChars;
 
-    /// <summary>
-    /// Controls which characters will be used as newlines.
-    /// </summary>
     public static string NewLineChars
     {
         get
@@ -26,9 +23,6 @@ public static class Xml
         }
     }
 
-    /// <summary>
-    /// Controls which characters will be used as indentation.
-    /// </summary>
     public static string IndentChars
     {
         get
@@ -38,19 +32,15 @@ public static class Xml
         }
     }
 
-    /// <inheritdoc cref="XmlConvert.EncodeName"/>
     public static string? EncodeName(string? s)
         => XmlConvert.EncodeName(s);
 
-    /// <inheritdoc cref="SecurityElement.Escape"/>
     public static string? Escape(string? s)
         => SecurityElement.Escape(s);
 
-    /// <inheritdoc cref="HttpUtility.HtmlAttributeEncode"/>
     public static string? EscapeAttribute(string? s)
         => HttpUtility.HtmlAttributeEncode(s);
 
-    /// <inheritdoc cref="HttpUtility.HtmlDecode"/>
     public static string? Unescape(string? s)
         => HttpUtility.HtmlDecode(s);
 
@@ -81,7 +71,7 @@ public static class Xml
     internal static void WriteTree(Element e, XmlWriter xw, XmlFormatting fmt)
     {
         var skipAttribute = e.Prefix == null ? "xmlns" : $"xmlns:{e.Prefix}";
-        xw.WriteStartElement(e.Prefix, e.LocalName, e.NamespaceURI);
+        xw.WriteStartElement(e.Prefix, e.LocalName, e.Namespace);
 
         foreach (var (key, value) in e.Attributes)
         {

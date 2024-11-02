@@ -10,7 +10,7 @@ internal class Program
         var stz = new Iq
         {
             Type = IqType.Result,
-            NamespaceURI = Namespaces.Client
+            Namespace = Namespaces.Client
         };
 
         var xml = stz.StartTag();

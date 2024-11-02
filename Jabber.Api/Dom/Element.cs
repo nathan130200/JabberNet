@@ -7,8 +7,40 @@ using System.Text;
 namespace Jabber.Dom;
 
 [DebuggerDisplay("{StartTag(),nq}")]
+[DebuggerTypeProxy(typeof(ElementTypeProxy))]
 public record class Element
 {
+    class ElementTypeProxy
+    {
+        private readonly Element? _element;
+
+        public ElementTypeProxy(Element? e)
+            => _element = e;
+
+        public string? TagName
+        {
+            get => _element?.TagName;
+            set => _element!.TagName = value!;
+        }
+
+        public string? Namespace
+        {
+            get => _element?.Namespace;
+            set => _element!.Namespace = value!;
+        }
+
+        public string? DefaultNamespace
+        {
+            get => _element?.GetNamespace();
+            set => _element?.SetNamespace(value!);
+        }
+
+        public IReadOnlyList<Element>? Children => _element?.Children();
+        public IReadOnlyDictionary<string, string>? Attributes => _element?.Attributes;
+        public Element? FirstChild => _element?.FirstChild;
+        public Element? LastChild => _element?.LastChild;
+    }
+
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Element? _parent;
 
@@ -24,7 +56,6 @@ public record class Element
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Dictionary<string, string> _attributes;
 
-    [Experimental("XMPP001")]
     ~Element()
     {
         _localName = null!;
@@ -43,19 +74,19 @@ public record class Element
         _attributes = null!;
     }
 
-    public Element(string tagName, string? xmlns = default, object? value = default)
+    public Element(string tagName, string? namespaceURI = default, object? value = default)
     {
-        _children = [];
-        _attributes = [];
+        _children = new();
+        _attributes = new();
 
         TagName = tagName;
 
-        if (xmlns != null)
+        if (namespaceURI != null)
         {
             if (Prefix != null)
-                SetNamespace(Prefix, xmlns);
+                SetNamespace(Prefix, namespaceURI);
             else
-                SetNamespace(xmlns);
+                SetNamespace(namespaceURI);
         }
 
         if (value != null)
@@ -70,20 +101,17 @@ public record class Element
 
     public Element(Element other)
     {
-        _children = [];
-        _attributes = [];
+        _children = new();
+        _attributes = new();
         _localName = other._localName;
         _prefix = other._prefix;
 
-        lock (other._attributes)
-        {
-            foreach (var (key, value) in other._attributes)
-                _attributes[key] = value;
-        }
+        foreach (var (key, value) in other.Attributes)
+            _attributes[key] = value;
 
         lock (other._children)
         {
-            foreach (var element in other._children)
+            foreach (var element in other.Children())
                 _children.Add(element with { _parent = this });
         }
 
@@ -120,7 +148,7 @@ public record class Element
         get => _localName;
         set
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(LocalName));
+            ThrowHelper.ThrowIfNullOrWhiteSpace(value, nameof(LocalName));
             _localName = value;
         }
     }
@@ -130,7 +158,7 @@ public record class Element
         get => _prefix == null ? _localName : string.Concat(_prefix, ':', _localName);
         set
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(TagName));
+            ThrowHelper.ThrowIfNullOrWhiteSpace(value, nameof(TagName));
             var ofs = value.IndexOf(':');
 
             if (ofs > 0)
@@ -166,7 +194,7 @@ public record class Element
 
     public void SetAttribute(string name, object? value, string? format = default, IFormatProvider? formatter = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(name);
 
         if (value is null)
             RemoveAttribute(name);
@@ -187,7 +215,7 @@ public record class Element
 
     public string? GetAttribute(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(name);
 
         lock (_attributes)
             return _attributes.GetValueOrDefault(name);
@@ -195,7 +223,7 @@ public record class Element
 
     public void RemoveAttribute(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(name);
 
         lock (_attributes)
             _attributes.Remove(name);
@@ -219,7 +247,7 @@ public record class Element
 
     public void SetNamespace(string prefix, string? namespaceURI)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(prefix);
         ArgumentNullException.ThrowIfNull(namespaceURI);
         SetAttribute($"xmlns:{prefix}", namespaceURI);
     }
@@ -242,7 +270,7 @@ public record class Element
         }
     }
 
-    public string? NamespaceURI
+    public string? Namespace
     {
         get => GetNamespace(Prefix);
         set
@@ -261,7 +289,7 @@ public record class Element
             KeyValuePair<string, string>[] result;
 
             lock (_attributes)
-                result = [.. _attributes];
+                result = _attributes.ToArray();
 
             return result.ToDictionary(x => x.Key, x => x.Value);
         }
@@ -309,22 +337,19 @@ public record class Element
         return sb.ToString();
     }
 
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public IReadOnlyList<Element> ChildNodes => Children();
-
     public IReadOnlyList<Element> Children()
     {
-        List<Element> result;
+        Element[] result;
 
         lock (_children)
-            result = [.. _children];
+            result = _children.ToArray();
 
-        return result;
+        return result.ToList();
     }
 
     public IEnumerable<Element> Children(string tagName, string? namespaceURI = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(tagName);
         return ChildrenInternal(tagName, namespaceURI, false);
     }
 
@@ -334,7 +359,7 @@ public record class Element
         {
             foreach (var element in _children)
             {
-                if (element.TagName == tagName && (ns == null || ns == element.NamespaceURI))
+                if (element.TagName == tagName && (ns == null || ns == element.Namespace))
                 {
                     yield return element;
 
@@ -347,19 +372,19 @@ public record class Element
 
     public Element? Child(string tagName, string? namespaceURI = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(tagName);
         return ChildrenInternal(tagName, namespaceURI, true).FirstOrDefault();
     }
 
     public bool HasTag(string tagName, string? namespaceURI = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(tagName);
         return ChildrenInternal(tagName, namespaceURI, true).Any();
     }
 
     public Element SetTag(string tagName, string? namespaceURI = default, object? value = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
+        ThrowHelper.ThrowIfNullOrWhiteSpace(tagName);
         var el = new Element(tagName, namespaceURI, value);
         AddChild(el);
         return el;

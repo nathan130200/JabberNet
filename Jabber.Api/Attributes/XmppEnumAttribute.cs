@@ -6,7 +6,12 @@ public sealed class XmppEnumAttribute : Attribute
 }
 
 [AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
-public sealed class XmppEnumMemberAttribute(string name) : Attribute
+public sealed class XmppEnumMemberAttribute : Attribute
 {
-    public string Name { get; } = name;
+    public string Name { get; }
+
+    public XmppEnumMemberAttribute(string name)
+    {
+        Name = name;
+    }
 }
