@@ -1,10 +1,16 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Jabber;
 
 [DebuggerDisplay("{ToString(),nq}")]
 public record Jid
+
+#if NET7_0_OR_GREATER
+    : IParsable<Jid>
+#endif
+
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private string? _local, _resource;
@@ -81,4 +87,35 @@ public record Jid
 
         return new(jid);
     }
+
+    public bool IsBare => string.IsNullOrWhiteSpace(_resource);
+
+    public Jid Bare => this with
+    {
+        _resource = null
+    };
+
+#if NET7_0_OR_GREATER
+
+    public static Jid Parse(string s, IFormatProvider? provider)
+    {
+        ArgumentNullException.ThrowIfNull(s);
+        return new Jid(s);
+    }
+
+    public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out Jid result)
+    {
+        try
+        {
+            result = Parse(s, provider);
+            return true;
+        }
+        catch
+        {
+            result = default;
+            return false;
+        }
+    }
+
+#endif
 }
