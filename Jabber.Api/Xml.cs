@@ -1,13 +1,24 @@
-﻿using Jabber.Dom;
-using System.Security;
+﻿using System.Security;
 using System.Text;
 using System.Web;
 using System.Xml;
+using Jabber.Dom;
 
 namespace Jabber;
 
 public static class Xml
 {
+    public static XmlResolver ThrowingResolver { get; } = new ThrowingXmlResolverImpl();
+
+    class ThrowingXmlResolverImpl : XmlResolver
+    {
+        public override object? GetEntity(Uri absoluteUri, string? role, Type? ofObjectToReturn)
+            => throw new NotSupportedException();
+
+        public override Task<object> GetEntityAsync(Uri absoluteUri, string? role, Type? ofObjectToReturn)
+            => throw new NotSupportedException();
+    }
+
     [ThreadStatic]
     private static string? s_IndentChars;
 
@@ -44,8 +55,7 @@ public static class Xml
     public static string? Unescape(string? s)
         => HttpUtility.HtmlDecode(s);
 
-
-    internal static XmlWriter CreateWriter(TextWriter textWriter, XmlFormatting formatting)
+    internal static XmlWriter CreateWriter(TextWriter textWriter, XmlFormatting formatting, Encoding? encoding = default)
     {
         var isFragment = formatting.HasFlag(XmlFormatting.OmitXmlDeclaration);
 
@@ -55,7 +65,7 @@ public static class Xml
             IndentChars = IndentChars,
             ConformanceLevel = isFragment ? ConformanceLevel.Fragment : ConformanceLevel.Document,
             CloseOutput = false,
-            Encoding = Encoding.UTF8,
+            Encoding = encoding ?? Encoding.UTF8,
             NamespaceHandling = formatting.HasFlag(XmlFormatting.OmitDuplicatedNamespaces)
                 ? NamespaceHandling.OmitDuplicates
                 : NamespaceHandling.Default,
@@ -68,7 +78,7 @@ public static class Xml
         });
     }
 
-    internal static void WriteTree(Element e, XmlWriter xw, XmlFormatting fmt)
+    internal static void WriteTree(Element e, XmlWriter xw)
     {
         var skipAttribute = e.Prefix == null ? "xmlns" : $"xmlns:{e.Prefix}";
         xw.WriteStartElement(e.Prefix, e.LocalName, e.Namespace);
@@ -98,7 +108,7 @@ public static class Xml
             xw.WriteString(e.Value);
 
         foreach (var child in e.Children())
-            WriteTree(child, xw, fmt);
+            WriteTree(child, xw);
 
         xw.WriteEndElement();
     }

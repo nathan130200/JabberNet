@@ -1,8 +1,7 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Xml;
 
 namespace Jabber.Dom;
 
@@ -270,6 +269,12 @@ public record class Element
         }
     }
 
+    public string? DefaultNamespace
+    {
+        get => GetNamespace();
+        set => SetNamespace(value);
+    }
+
     public string? Namespace
     {
         get => GetNamespace(Prefix);
@@ -298,8 +303,11 @@ public record class Element
     public void WriteTo(TextWriter textWriter, XmlFormatting formatting = XmlFormatting.Default)
     {
         using var writer = Xml.CreateWriter(textWriter, formatting);
-        Xml.WriteTree(this, writer, formatting);
+        Xml.WriteTree(this, writer);
     }
+
+    public void WriteTo(XmlWriter writer)
+        => Xml.WriteTree(this, writer);
 
     public void Save(Stream stream, XmlFormatting formatting = XmlFormatting.Default)
     {

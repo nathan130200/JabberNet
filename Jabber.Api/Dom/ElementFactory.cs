@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Jabber.Attributes;
 using Jabber.Protocol;
-using Jabber.Protocol.Base;
 
 namespace Jabber.Dom;
 

@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jabber.Api", "Jabber.Api\Ja
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jabber.Server", "Jabber.Server\Jabber.Server.csproj", "{064663B5-16EA-40CD-BD29-5AEF95ACD54F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jabber.Api.Test", "Jabber.Api.Test\Jabber.Api.Test.csproj", "{74E5FCC7-979B-4E87-9393-9C89ADBEF7EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{064663B5-16EA-40CD-BD29-5AEF95ACD54F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{064663B5-16EA-40CD-BD29-5AEF95ACD54F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{064663B5-16EA-40CD-BD29-5AEF95ACD54F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74E5FCC7-979B-4E87-9393-9C89ADBEF7EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74E5FCC7-979B-4E87-9393-9C89ADBEF7EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74E5FCC7-979B-4E87-9393-9C89ADBEF7EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74E5FCC7-979B-4E87-9393-9C89ADBEF7EE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

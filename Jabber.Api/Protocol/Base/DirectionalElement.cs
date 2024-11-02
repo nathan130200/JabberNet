@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using Jabber.Attributes;
 using Jabber.Dom;
 
 namespace Jabber.Protocol.Base;
