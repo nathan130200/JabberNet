@@ -38,6 +38,8 @@ public record class Element
         public IReadOnlyDictionary<string, string>? Attributes => _element?.Attributes;
         public Element? FirstChild => _element?.FirstChild;
         public Element? LastChild => _element?.LastChild;
+        public string? StarTag => _element?.StartTag();
+        public string? EndTag => _element?.EndTag();
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -60,17 +62,13 @@ public record class Element
         _localName = null!;
         _prefix = null!;
 
-        if (_children != null)
-        {
-            foreach (var element in _children)
-                element._parent = null;
-
-            _children.Clear();
-            _children = null!;
-        }
+        _children.Clear();
+        _children = null!;
 
         _attributes?.Clear();
         _attributes = null!;
+
+        _parent = null;
     }
 
     public Element(string tagName, string? namespaceURI = default, object? value = default)
@@ -219,6 +217,34 @@ public record class Element
         lock (_attributes)
             return _attributes.GetValueOrDefault(name);
     }
+
+#if NET7_0_OR_GREATER
+
+    public T GetAttribute<T>(string name, T defaultValue, IFormatProvider? formatter = default) where T : IParsable<T>
+    {
+        formatter ??= CultureInfo.InvariantCulture;
+
+        var attrVal = GetAttribute(name);
+
+        if (!T.TryParse(attrVal, formatter, out var result))
+            return defaultValue;
+
+        return result;
+    }
+
+    public T? GetAttribute<T>(string name, IFormatProvider? formatter = default) where T : struct, IParsable<T>
+    {
+        formatter ??= CultureInfo.InvariantCulture;
+
+        var attrVal = GetAttribute(name);
+
+        if (!T.TryParse(attrVal, formatter, out var result))
+            return default;
+
+        return result;
+    }
+
+#endif
 
     public void RemoveAttribute(string name)
     {
