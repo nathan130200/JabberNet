@@ -6,7 +6,6 @@ namespace Jabber.Dom;
 
 public sealed class Document
 {
-    public bool? Standalone { get; set; } = default;
     public Encoding Encoding { get; set; } = Encoding.UTF8;
 
     public Element? RootElement
@@ -84,12 +83,7 @@ public sealed class Document
                 var writeXmlDecl = !formatting.HasFlag(XmlFormatting.OmitXmlDeclaration);
 
                 if (writeXmlDecl)
-                {
-                    if (Standalone.HasValue)
-                        writer.WriteStartDocument((bool)Standalone);
-                    else
-                        writer.WriteStartDocument();
-                }
+                    writer.WriteStartDocument();
 
                 RootElement?.WriteTo(writer);
 
@@ -179,8 +173,11 @@ public sealed class Document
 
                         case XmlNodeType.XmlDeclaration:
                             {
-                                var strEncoding = reader.GetAttribute("encoding");
-                                Encoding = strEncoding == null ? Encoding.UTF8 : Encoding.GetEncoding(strEncoding);
+                                var encodingName = reader.GetAttribute("encoding");
+
+                                Encoding = encodingName == null 
+                                    ? Encoding.UTF8 
+                                    : Encoding.GetEncoding(encodingName);
                             }
                             break;
 
