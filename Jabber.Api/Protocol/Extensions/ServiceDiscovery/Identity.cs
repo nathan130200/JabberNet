@@ -3,10 +3,10 @@ using Jabber.Dom;
 
 namespace Jabber.Protocol.Extensions.ServiceDiscovery;
 
-[XmppTag("feature", Namespaces.DiscoInfo)]
+[XmppTag("identity", Namespaces.DiscoInfo)]
 public class Identity : Element
 {
-    public Identity() : base("feature", Namespaces.DiscoInfo)
+    public Identity() : base("identity", Namespaces.DiscoInfo)
     {
 
     }
