@@ -1,6 +1,6 @@
 ﻿namespace Jabber.Protocol.Base;
 
-public sealed record Stream : Stanza
+public class Stream : Stanza
 {
     public Stream(Stream other) : base(other)
     {

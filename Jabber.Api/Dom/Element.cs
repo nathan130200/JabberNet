@@ -7,8 +7,12 @@ namespace Jabber.Dom;
 
 [DebuggerDisplay("{StartTag(),nq}")]
 [DebuggerTypeProxy(typeof(ElementTypeProxy))]
-public record class Element
+public class Element : ICloneable
 {
+    object ICloneable.Clone() => Clone();
+
+    #region Debugger Type Proxy
+
     class ElementTypeProxy
     {
         private readonly Element? _element;
@@ -41,6 +45,8 @@ public record class Element
         public string? StarTag => _element?.StartTag();
         public string? EndTag => _element?.EndTag();
     }
+
+    #endregion
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private Element? _parent;
@@ -90,14 +96,11 @@ public record class Element
             Value = Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
-    public Element(Element parent, string tagName, string? xmlns = default, object? value = default) : this(tagName, xmlns, value)
-    {
-        ArgumentNullException.ThrowIfNull(parent);
-        Parent = parent;
-    }
-
     public Element(Element other)
     {
+        if (GetType() != other.GetType())
+            throw new InvalidOperationException("To perform a copy constructor, both objects must be of the same type.");
+
         _children = new();
         _attributes = new();
         _localName = other._localName;
@@ -109,7 +112,7 @@ public record class Element
         lock (other._children)
         {
             foreach (var element in other.Children())
-                _children.Add(element with { _parent = this });
+                _children.Add(element.Clone());
         }
 
         Value = other.Value;
@@ -170,8 +173,10 @@ public record class Element
 
     public void AddChild(Element e)
     {
+        ArgumentNullException.ThrowIfNull(e);
+
         if (e._parent != null)
-            e = e with { _parent = this };
+            e = e.Clone();
 
         lock (_children)
             _children.Add(e);
@@ -179,6 +184,8 @@ public record class Element
 
     public void RemoveChild(Element e)
     {
+        ArgumentNullException.ThrowIfNull(e);
+
         if (e._parent != this)
             return;
 
@@ -208,6 +215,21 @@ public record class Element
                 _attributes[name] = rawValue ?? string.Empty;
             }
         }
+    }
+
+    public Element Clone()
+    {
+        var result = ElementFactory.CreateElement(TagName, Namespace);
+
+        foreach (var (key, value) in Attributes)
+            result._attributes[key] = value;
+
+        foreach (var child in Children())
+            result.AddChild(child.Clone());
+
+        result.Value = Value;
+
+        return result;
     }
 
     public string? GetAttribute(string name)

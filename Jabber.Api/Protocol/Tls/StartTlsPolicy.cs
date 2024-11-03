@@ -1,7 +1,7 @@
 ﻿namespace Jabber.Protocol.Tls;
 
 [Flags]
-public enum TlsPolicy
+public enum StartTlsPolicy
 {
     None,
     Offered = 1 << 1,

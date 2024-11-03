@@ -3,18 +3,13 @@ using Jabber.Dom;
 
 namespace Jabber.Protocol.Base;
 
-public abstract record Stanza : DirectionalElement
+public abstract class Stanza : DirectionalElement
 {
     protected Stanza(Stanza other) : base(other)
     {
     }
 
-    protected Stanza(string tagName, string? xmlns = null, object? value = null) : base(tagName, xmlns, value)
-    {
-
-    }
-
-    protected Stanza(Element parent, string tagName, string? xmlns = null, object? value = null) : base(parent, tagName, xmlns, value)
+    protected Stanza(string tagName, string? namespaceURI = null, object? value = null) : base(tagName, namespaceURI, value)
     {
 
     }

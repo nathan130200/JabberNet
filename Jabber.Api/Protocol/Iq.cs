@@ -7,14 +7,14 @@ namespace Jabber.Protocol;
 [XmppTag("iq", Namespaces.Accept)]
 [XmppTag("iq", Namespaces.Connect)]
 [XmppTag("iq", Namespaces.Server)]
-public record class Iq : Stanza
+public class Iq : Stanza
 {
     public Iq(Iq other) : base(other)
     {
 
     }
 
-    public Iq() : base("iq")
+    public Iq() : base("iq", Namespaces.Client)
     {
 
     }
@@ -29,20 +29,4 @@ public record class Iq : Stanza
         get => XmppEnum.FromXmlOrDefault<IqType>(base.Type);
         set => base.Type = XmppEnum.ToXml(value);
     }
-}
-
-[XmppEnum]
-public enum IqType
-{
-    [XmppEnumMember("error")]
-    Error,
-
-    [XmppEnumMember("get")]
-    Get,
-
-    [XmppEnumMember("set")]
-    Set,
-
-    [XmppEnumMember("result")]
-    Result
 }

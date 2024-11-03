@@ -1,12 +1,11 @@
 ﻿using Jabber.Dom;
+using Jabber.Protocol.Sasl;
 using Jabber.Protocol.Tls;
 
 namespace Jabber.Protocol.Base;
 
-public sealed record StreamFeatures : Element
+public class StreamFeatures : Element
 {
-    public override string ToString() => base.ToString(false);
-
     public StreamFeatures(StreamFeatures other) : base(other)
     {
 
@@ -17,39 +16,15 @@ public sealed record StreamFeatures : Element
 
     }
 
-    public TlsPolicy StartTls
+    public StartTls? StartTls
     {
-        get
-        {
-            TlsPolicy result = 0;
-
-            var tag = Child("starttls", Namespaces.Tls);
-
-            if (tag != null)
-            {
-                result |= TlsPolicy.Offered;
-
-                if (tag.HasTag("required"))
-                    result |= TlsPolicy.Required;
-                else if (tag.HasTag("optional"))
-                    result |= TlsPolicy.Optional;
-            }
-
-            return result;
-        }
+        get => Children().OfType<StartTls>().FirstOrDefault();
         set
         {
-            Child("starttls", Namespaces.Tls)?.Remove();
+            StartTls?.Remove();
 
-            if (value.HasFlag(TlsPolicy.Offered))
-            {
-                var el = SetTag("starttls", Namespaces.Tls);
-
-                if (value.HasFlag(TlsPolicy.Required))
-                    el.SetTag("required");
-                else if (value.HasFlag(TlsPolicy.Optional))
-                    el.SetTag("optional");
-            }
+            if (value != null)
+                AddChild(value);
         }
     }
 
@@ -64,6 +39,7 @@ public sealed record StreamFeatures : Element
                 SetTag("bind", Namespaces.Bind);
         }
     }
+
     public bool SupportSession
     {
         get => HasTag("session", Namespaces.Session);
@@ -73,6 +49,18 @@ public sealed record StreamFeatures : Element
 
             if (value)
                 SetTag("session", Namespaces.Session);
+        }
+    }
+
+    public Mechanisms? Mechanisms
+    {
+        get => Children().OfType<Mechanisms>().FirstOrDefault();
+        set
+        {
+            Mechanisms?.Remove();
+
+            if (value != null)
+                AddChild(value);
         }
     }
 }

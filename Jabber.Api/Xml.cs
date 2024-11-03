@@ -55,7 +55,22 @@ public static class Xml
     public static string? Unescape(string? s)
         => HttpUtility.HtmlDecode(s);
 
-    internal static XmlWriter CreateWriter(TextWriter textWriter, XmlFormatting formatting, Encoding? encoding = default)
+    public static IEnumerable<T> ForEach<T>(this IEnumerable<T> source, Action<T> callback)
+        where T : Element
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        if (source.Any())
+        {
+            foreach (var item in source)
+                callback(item);
+        }
+
+        return source;
+    }
+
+    public static XmlWriter CreateWriter(TextWriter textWriter, XmlFormatting formatting, Encoding? encoding = default)
     {
         var isFragment = formatting.HasFlag(XmlFormatting.OmitXmlDeclaration);
 
@@ -78,7 +93,7 @@ public static class Xml
         });
     }
 
-    internal static void WriteTree(Element e, XmlWriter xw)
+    public static void WriteTree(Element e, XmlWriter xw)
     {
         var skipAttribute = e.Prefix == null ? "xmlns" : $"xmlns:{e.Prefix}";
         xw.WriteStartElement(e.Prefix, e.LocalName, e.Namespace);
