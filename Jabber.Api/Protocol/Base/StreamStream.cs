@@ -1,13 +1,13 @@
 ﻿namespace Jabber.Protocol.Base;
 
-public class Stream : Stanza
+public class StreamStream : Stanza
 {
-    public Stream(Stream other) : base(other)
+    public StreamStream(StreamStream other) : base(other)
     {
 
     }
 
-    public Stream() : base("stream:stream", Namespaces.Stream)
+    public StreamStream() : base("stream:stream", Namespaces.Stream)
     {
 
     }

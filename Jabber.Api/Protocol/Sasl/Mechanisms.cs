@@ -18,14 +18,13 @@ public class Mechanisms : Element
 
     public IEnumerable<Mechanisms> SupportedMechanisms
     {
-        get => Children().OfType<Mechanisms>();
+        get => Children<Mechanisms>();
         set
         {
-            ArgumentNullException.ThrowIfNull(value);
+            ThrowHelper.ThrowIfNull(value);
 
-            Children()
-                .OfType<Mechanisms>()
-                .ForEach(n => n.Remove());
+            Children<Mechanisms>()
+                .Remove();
 
             foreach (var item in value)
                 AddChild(item);

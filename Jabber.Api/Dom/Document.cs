@@ -7,12 +7,7 @@ namespace Jabber.Dom;
 public sealed class Document
 {
     public Encoding Encoding { get; set; } = Encoding.UTF8;
-
-    public Element? RootElement
-    {
-        get;
-        set;
-    }
+    public Element? RootElement { get; set; }
 
     public Document()
     {
@@ -22,13 +17,15 @@ public sealed class Document
     public Document(Element rootElement)
         => RootElement = rootElement;
 
-    public void Parse(string xml)
+    public Document Parse(string xml)
     {
         using (var reader = new StringReader(xml))
-            ParseImpl(reader);
+            Load(reader);
+
+        return this;
     }
 
-    public void Load(string file, Encoding? encoding = default, int bufferSize = 4096)
+    public Document Load(string file, Encoding? encoding = default, int bufferSize = -1)
     {
         encoding ??= Encoding.UTF8;
 
@@ -36,27 +33,128 @@ public sealed class Document
             bufferSize = 4096;
 
         using (var reader = new StreamReader(file, encoding, true, bufferSize))
-            ParseImpl(reader);
+            Load(reader);
+
+        return this;
     }
 
-    public void Load(Stream stream, Encoding? encoding = default, int bufferSize = 4096, bool leaveOpen = true)
+    public Document Load(Stream stream, Encoding? encoding = default, int bufferSize = -1, bool leaveOpen = true)
     {
         encoding ??= Encoding.UTF8;
 
-        if (bufferSize <= 0)
-            bufferSize = 4096;
-
         using (var reader = new StreamReader(stream, encoding, true, bufferSize, leaveOpen))
-            ParseImpl(reader);
+            Load(reader);
+
+        return this;
     }
 
-    [ThreadStatic]
-    static bool b_AllowXmlResolver = false;
-
-    public static bool AllowXmlResolver
+    public void Load(TextReader textReader)
     {
-        get => b_AllowXmlResolver;
-        set => b_AllowXmlResolver = value;
+        ThrowHelper.ThrowIfNull(textReader);
+
+        var settings = new XmlReaderSettings
+        {
+            CheckCharacters = true,
+            CloseInput = true,
+            ConformanceLevel = ConformanceLevel.Fragment,
+            DtdProcessing = DtdProcessing.Ignore,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true,
+            IgnoreWhitespace = true,
+            ValidationFlags = XmlSchemaValidationFlags.AllowXmlAttributes,
+
+#if NET6_0
+            XmlResolver = Xml.ThrowingResolver
+#else
+            XmlResolver = XmlResolver.ThrowingResolver
+#endif
+
+        };
+
+        Element? root = default,
+            current = default;
+
+        try
+        {
+            using (var reader = XmlReader.Create(textReader))
+            {
+                var info = (IXmlLineInfo)reader;
+
+                while (reader.Read())
+                {
+                    switch (reader.NodeType)
+                    {
+                        case XmlNodeType.Element:
+                            {
+                                var elem = ElementFactory.CreateElement(reader.Name, reader.LookupNamespace(reader.Prefix));
+
+                                while (reader.MoveToNextAttribute())
+                                    elem.SetAttribute(reader.Name, reader.Value);
+
+                                reader.MoveToElement();
+
+                                if (root == null)
+                                    root = elem;
+
+                                if (reader.IsEmptyElement)
+                                {
+                                    current?.AddChild(elem);
+                                }
+                                else
+                                {
+                                    current?.AddChild(elem);
+                                    current = elem;
+                                }
+                            }
+                            break;
+
+                        case XmlNodeType.EndElement:
+                            {
+                                if (current == null)
+                                    throw new XmlException("Unexcepted eng tag.", null, info.LineNumber, info.LinePosition);
+
+                                var parent = current?.Parent;
+
+                                if (parent == null)
+                                    return;
+
+                                current = parent;
+                            }
+                            break;
+
+                        case XmlNodeType.SignificantWhitespace:
+                        case XmlNodeType.Text:
+                            {
+                                if (current != null)
+                                    current.Value += reader.Value;
+                            }
+                            break;
+
+                        // skip unwanted whitespaces and PIs
+                        case XmlNodeType.Whitespace:
+                        case XmlNodeType.ProcessingInstruction:
+                            break;
+
+                        case XmlNodeType.XmlDeclaration:
+                            {
+                                var encodingName = reader.GetAttribute("encoding");
+
+                                Encoding = encodingName == null
+                                    ? Encoding.UTF8
+                                    : Encoding.GetEncoding(encodingName);
+                            }
+                            break;
+
+                        default:
+                            throw new XmlException($"Unsupported XML token. ({reader.NodeType})", null, info.LineNumber, info.LinePosition);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            RootElement = root;
+        }
     }
 
     public override string ToString()
@@ -94,104 +192,6 @@ public sealed class Document
 
         return sb.ToString();
     }
-
-    void ParseImpl(TextReader textReader)
-    {
-        ArgumentNullException.ThrowIfNull(textReader);
-
-        var settings = new XmlReaderSettings
-        {
-            CheckCharacters = true,
-            CloseInput = true,
-            ConformanceLevel = ConformanceLevel.Fragment,
-            DtdProcessing = DtdProcessing.Ignore,
-            IgnoreComments = true,
-            IgnoreProcessingInstructions = true,
-            IgnoreWhitespace = true,
-            ValidationFlags = XmlSchemaValidationFlags.AllowXmlAttributes,
-        };
-
-        if (!b_AllowXmlResolver)
-            settings.XmlResolver = Xml.ThrowingResolver;
-
-        Element? root = default,
-            current = default;
-
-        try
-        {
-            using (var reader = XmlReader.Create(textReader))
-            {
-                var info = (IXmlLineInfo)reader;
-
-                while (reader.Read())
-                {
-                    switch (reader.NodeType)
-                    {
-                        case XmlNodeType.Element:
-                            {
-                                var elem = new Element(reader.Name, reader.NamespaceURI);
-
-                                while (reader.MoveToNextAttribute())
-                                    elem.SetAttribute(reader.Name, reader.Value);
-
-                                reader.MoveToElement();
-
-                                if (root == null)
-                                    root = elem;
-
-                                current?.AddChild(elem);
-                                current = elem;
-                            }
-                            break;
-
-                        case XmlNodeType.EndElement:
-                            {
-                                if (current == null)
-                                    throw new XmlException("Unexcepted eng tag.", null, info.LineNumber, info.LinePosition);
-
-                                var parent = current?.Parent;
-
-                                if (parent == null)
-                                    return;
-
-                                current = parent;
-                            }
-                            break;
-
-                        case XmlNodeType.SignificantWhitespace:
-                        case XmlNodeType.Text:
-                            {
-                                if (current != null)
-                                    current.Value += reader.Value;
-                            }
-                            break;
-
-                        // skip unwanted whitespaces and PIs
-                        case XmlNodeType.Whitespace:
-                        case XmlNodeType.ProcessingInstruction:
-                            break;
-
-                        case XmlNodeType.XmlDeclaration:
-                            {
-                                var encodingName = reader.GetAttribute("encoding");
-
-                                Encoding = encodingName == null 
-                                    ? Encoding.UTF8 
-                                    : Encoding.GetEncoding(encodingName);
-                            }
-                            break;
-
-                        default:
-                            throw new XmlException($"Unsupported XML token. ({reader.NodeType})", null, info.LineNumber, info.LinePosition);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            RootElement = root;
-        }
-    }
 }
 
 
@@ -201,7 +201,7 @@ public sealed class StringWriterWithEncoding : StringWriter
 
     public StringWriterWithEncoding(StringBuilder @out, Encoding encoding) : base(@out)
     {
-        ArgumentNullException.ThrowIfNull(encoding);
+        ThrowHelper.ThrowIfNull(encoding);
 
         _encoding = encoding;
     }

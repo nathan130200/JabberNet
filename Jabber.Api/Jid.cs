@@ -99,7 +99,7 @@ public record Jid
 
     public static Jid Parse(string s, IFormatProvider? provider)
     {
-        ArgumentNullException.ThrowIfNull(s);
+        ThrowHelper.ThrowIfNull(s);
         return new Jid(s);
     }
 
@@ -107,7 +107,7 @@ public record Jid
     {
         try
         {
-            result = Parse(s, provider);
+            result = Parse(s!, provider);
             return true;
         }
         catch

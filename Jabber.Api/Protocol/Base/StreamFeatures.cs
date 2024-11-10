@@ -18,7 +18,7 @@ public class StreamFeatures : Element
 
     public StartTls? StartTls
     {
-        get => Children().OfType<StartTls>().FirstOrDefault();
+        get => Child<StartTls>();
         set
         {
             StartTls?.Remove();
@@ -54,7 +54,7 @@ public class StreamFeatures : Element
 
     public Mechanisms? Mechanisms
     {
-        get => Children().OfType<Mechanisms>().FirstOrDefault();
+        get => Child<Mechanisms>();
         set
         {
             Mechanisms?.Remove();

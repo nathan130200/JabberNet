@@ -11,27 +11,27 @@ public class StartTls : Element
 
     }
 
-    public StartTlsPolicy State
+    public StartTlsPolicy Policy
     {
         get
         {
-            StartTlsPolicy result = 0;
-            if (HasTag("required")) result |= StartTlsPolicy.Required | StartTlsPolicy.Offered;
-            else if (HasTag("optional")) result |= StartTlsPolicy.Optional | StartTlsPolicy.Offered;
+            StartTlsPolicy result;
+
+            if (HasTag("required"))
+                result = StartTlsPolicy.Required;
+            else
+                result = StartTlsPolicy.Optional;
+
             return result;
         }
         set
         {
-            RemoveTag("optional", Namespaces.Tls);
-            RemoveTag("required", Namespaces.Tls);
+            ClearChildren();
 
-            if (value.HasFlag(StartTlsPolicy.Offered))
-            {
-                if (value.HasFlag(StartTlsPolicy.Required))
-                    SetTag("required", Namespaces.Tls);
-                else
-                    SetTag("optional", Namespaces.Tls);
-            }
+            if (value.HasFlag(StartTlsPolicy.Required))
+                SetTag("required", Namespaces.Tls);
+            else
+                SetTag("optional", Namespaces.Tls);
         }
     }
 }

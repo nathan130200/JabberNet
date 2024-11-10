@@ -1,46 +1,73 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
+﻿using Jabber.Attributes;
+using Jabber.Collections;
+using Jabber.Protocol;
+using Jabber.Protocol.Base;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Jabber.Attributes;
-using Jabber.Protocol;
 
 namespace Jabber.Dom;
 
 public static class ElementFactory
 {
-    static readonly ConcurrentDictionary<Type, IEnumerable<XmppTagInfo>> s_ElementTypes = new();
-    static readonly IEnumerable<XmppTagInfo> s_Empty = Enumerable.Empty<XmppTagInfo>();
+    static readonly ConcurrentDictionary<Type, IEnumerable<XmppTag>> s_ElementTypes = new();
+    static readonly IEnumerable<XmppTag> s_Empty = Enumerable.Empty<XmppTag>();
 
     static ElementFactory()
     {
         RegisterElementsFromAssembly(typeof(ElementFactory).Assembly);
     }
 
+    public static void RegisterElement<T>()
+        => RegisterElement(typeof(T));
+
+    public static void RegisterElement(Type type)
+    {
+        ThrowHelper.ThrowIfNull(type);
+
+        var tags = from a in type.GetCustomAttributes<XmppTagAttribute>()
+                   select new XmppTag(a.TagName, a.NamespaceURI);
+
+        if (!tags.Any())
+            return;
+
+        if (!s_ElementTypes.TryGetValue(type, out var current))
+            s_ElementTypes[type] = tags;
+        else
+            s_ElementTypes[type] = current.Concat(tags);
+    }
+
     public static void RegisterElementsFromAssembly(Assembly assembly)
     {
-        ArgumentNullException.ThrowIfNull(assembly);
+        ThrowHelper.ThrowIfNull(assembly);
 
         var elements = from type in assembly.GetTypes()
                        where !type.IsAbstract && type.IsSubclassOf(typeof(Element))
-                       let attributes =
+                       let tags =
                             from attr in type.GetCustomAttributes<XmppTagAttribute>()
-                            select new XmppTagInfo(attr.TagName, attr.NamespaceURI)
-                       where attributes.Any()
-                       select new { type, attributes };
+                            select new XmppTag(attr.TagName, attr.NamespaceURI)
+                       where tags.Any()
+                       select new { type, tags };
 
-        foreach (var element in elements)
-            s_ElementTypes[element.type] = element.attributes;
+        foreach (var it in elements)
+        {
+            if (!s_ElementTypes.TryGetValue(it.type, out var current))
+                s_ElementTypes[it.type] = it.tags;
+            else
+                s_ElementTypes[it.type] = current.Concat(it.tags);
+        }
     }
 
-    public static IEnumerable<XmppTagInfo> GetTagsFromType(Type targetType)
+    public static IEnumerable<XmppTag> LookupTagsFromType<T>() => LookupTagsFromType(typeof(T));
+
+    public static IEnumerable<XmppTag> LookupTagsFromType(Type targetType)
         => s_ElementTypes.GetValueOrDefault(targetType) ?? s_Empty;
 
-    static bool GetSpecialElementType(string tag, string? ns, [NotNullWhen(true)] out Type? result)
+    static bool TryLookupSpecialElement(string tag, string? ns, [NotNullWhen(true)] out Type? result)
     {
         result = (tag, ns) switch
         {
-            ("stream:stream", Namespaces.Stream) => typeof(Protocol.Base.Stream),
+            ("stream:stream", Namespaces.Stream) => typeof(StreamStream),
             ("iq", _) => typeof(Iq),
             //("message", _) => typeof(Message),
             //("presence", _) => typeof(Presence),
@@ -50,15 +77,15 @@ public static class ElementFactory
         return result != null;
     }
 
-    public static Type? GetTypeFromTag(string tagName, string? namespaceURI)
+    public static Type? LookupTypeFromTag(string tagName, string? namespaceURI)
     {
         ThrowHelper.ThrowIfNullOrWhiteSpace(tagName);
 
-        if (GetSpecialElementType(tagName, namespaceURI, out var result))
+        if (TryLookupSpecialElement(tagName, namespaceURI, out var result))
             return result;
 
-        var search = new XmppTagInfo(tagName, namespaceURI);
-        return s_ElementTypes.FirstOrDefault(x => x.Value.Any(s => s == search)).Key;
+        var find = new XmppTag(tagName, namespaceURI);
+        return s_ElementTypes.FirstOrDefault(xe => xe.Value.Any(xt => xt == find)).Key;
     }
 
     public static Element CreateElement(string tagName, string? namespaceURI)
@@ -67,7 +94,7 @@ public static class ElementFactory
 
         Element result;
 
-        var type = GetTypeFromTag(tagName, namespaceURI);
+        var type = LookupTypeFromTag(tagName, namespaceURI);
 
         if (type == null)
             result = new Element(tagName, namespaceURI);
@@ -81,41 +108,4 @@ public static class ElementFactory
 
         return result;
     }
-}
-
-[DebuggerDisplay("Name={TagName}; Namespace={NamespaceURI}")]
-public readonly struct XmppTagInfo : IEquatable<XmppTagInfo>
-{
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public string TagName { get; }
-
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public string? NamespaceURI { get; }
-
-    public XmppTagInfo(string tagName, string? namespaceURI)
-    {
-        TagName = tagName;
-        NamespaceURI = namespaceURI;
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine
-        (
-            TagName?.GetHashCode() ?? 0,
-            NamespaceURI?.GetHashCode() ?? 0
-        );
-    }
-
-    public override bool Equals(object? obj)
-        => obj is XmppTagInfo other && Equals(other);
-
-    public bool Equals(XmppTagInfo other)
-    {
-        return string.Equals(TagName, other.TagName, StringComparison.Ordinal)
-            && string.Equals(NamespaceURI, other.NamespaceURI, StringComparison.Ordinal);
-    }
-
-    public static bool operator ==(XmppTagInfo left, XmppTagInfo right) => left.Equals(right);
-    public static bool operator !=(XmppTagInfo left, XmppTagInfo right) => !(left == right);
 }

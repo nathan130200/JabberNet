@@ -1,9 +1,9 @@
 ﻿using Jabber.Collections;
 
-namespace Jabber.Api.Test;
+namespace Jabber.Test;
 
 [TestClass]
-public class JidTest
+public class JidTests
 {
     [TestMethod]
     [DataRow("foo.bar")]

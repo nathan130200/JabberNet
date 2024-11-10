@@ -1,17 +1,13 @@
-using System.Text;
 using Jabber.Dom;
+using Jabber.Protocol;
+using System.Text;
 
-namespace Jabber.Api.Test;
+namespace Jabber.Test;
 
 [TestClass]
-public class DocumentParsingTest
+public class DocumentParsingTests
 {
-    static readonly string SampleXml = @"
-<foo>
-    <bar xmlns='urn:mstest:app'>
-        <baz count='2' />
-    </bar>
-</foo>";
+    static readonly string SampleXml = @"<foo><bar xmlns='urn:mstest:app'><baz count='2' /></bar></foo>";
 
     [TestMethod]
     public void ParseFromString()
@@ -32,6 +28,34 @@ public class DocumentParsingTest
         var sub = child.FirstChild;
         Assert.IsNotNull(sub);
         Assert.AreEqual("2", sub.GetAttribute("count"));
+    }
+
+    [TestMethod]
+    public void ParseFromFactory()
+    {
+        var xml = "<iq xmlns='jabber:client' type='result'><query xmlns='urn:cryonline:k01'><setserver master_node='localhost' /></query></iq>";
+
+        var doc = new Document().Parse(xml);
+
+        Assert.IsInstanceOfType<Iq>(doc.RootElement);
+
+        var elem = doc.RootElement as Iq;
+        Assert.IsNotNull(elem);
+
+        Assert.AreEqual(IqType.Result, elem.Type);
+
+        var query = elem.FirstChild;
+        Assert.IsNotNull(query);
+
+        Assert.AreEqual("query", query.TagName);
+        Assert.AreEqual(Namespaces.CryOnline, query.Namespace);
+
+        var child = query.FirstChild;
+        Assert.IsNotNull(child);
+
+        Assert.AreEqual("setserver", child.TagName);
+        Assert.AreEqual(Namespaces.CryOnline, child.Namespace);
+        Assert.AreEqual("localhost", child.GetAttribute("master_node"));
     }
 
     [TestMethod]

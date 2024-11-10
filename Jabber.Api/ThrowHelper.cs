@@ -4,6 +4,12 @@ namespace Jabber;
 
 public static class ThrowHelper
 {
+    public static void ThrowIfNull(object? obj, [CallerArgumentExpression(nameof(obj))] string? paramName = default)
+    {
+        if (obj is null)
+            throw new ArgumentNullException(paramName);
+    }
+
     public static void ThrowIfNullOrWhiteSpace(string? s, [CallerArgumentExpression(nameof(s))] string? paramName = default)
     {
         if (string.IsNullOrWhiteSpace(s))

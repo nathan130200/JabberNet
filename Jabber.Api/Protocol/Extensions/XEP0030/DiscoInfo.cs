@@ -1,7 +1,7 @@
 ﻿using Jabber.Attributes;
 using Jabber.Dom;
 
-namespace Jabber.Protocol.Extensions.ServiceDiscovery;
+namespace Jabber.Protocol.Extensions.XEP0030;
 
 [XmppTag("query", Namespaces.DiscoInfo)]
 public class DiscoInfo : Element
@@ -19,20 +19,20 @@ public class DiscoInfo : Element
 
     public IEnumerable<Identity> Identities
     {
-        get => Children().OfType<Identity>();
+        get => Children<Identity>();
         set
         {
-            Identities.ForEach(n => n.Remove());
+            Identities.Remove();
             value?.ForEach(AddChild);
         }
     }
 
     public IEnumerable<Feature> Features
     {
-        get => Children().OfType<Feature>();
+        get => Children<Feature>();
         set
         {
-            Features.ForEach(n => n.Remove());
+            Features.Remove();
             value?.ForEach(AddChild);
         }
     }

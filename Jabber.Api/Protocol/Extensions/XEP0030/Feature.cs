@@ -1,7 +1,7 @@
 ﻿using Jabber.Attributes;
 using Jabber.Dom;
 
-namespace Jabber.Protocol.Extensions.ServiceDiscovery;
+namespace Jabber.Protocol.Extensions.XEP0030;
 
 [XmppTag("feature", Namespaces.DiscoInfo)]
 public class Feature : Element

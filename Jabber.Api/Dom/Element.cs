@@ -20,29 +20,14 @@ public class Element : ICloneable
         public ElementTypeProxy(Element? e)
             => _element = e;
 
-        public string? TagName
-        {
-            get => _element?.TagName;
-            set => _element!.TagName = value!;
-        }
-
-        public string? Namespace
-        {
-            get => _element?.Namespace;
-            set => _element!.Namespace = value!;
-        }
-
-        public string? DefaultNamespace
-        {
-            get => _element?.GetNamespace();
-            set => _element?.SetNamespace(value!);
-        }
-
+        public string? TagName => _element?.TagName;
+        public string? Namespace => _element?.Namespace;
+        public string? DefaultNamespace => _element?.GetNamespace();
         public IReadOnlyList<Element>? Children => _element?.Children();
         public IReadOnlyDictionary<string, string>? Attributes => _element?.Attributes;
         public Element? FirstChild => _element?.FirstChild;
         public Element? LastChild => _element?.LastChild;
-        public string? StarTag => _element?.StartTag();
+        public string? StartTag => _element?.StartTag();
         public string? EndTag => _element?.EndTag();
     }
 
@@ -173,7 +158,7 @@ public class Element : ICloneable
 
     public void AddChild(Element e)
     {
-        ArgumentNullException.ThrowIfNull(e);
+        ThrowHelper.ThrowIfNull(e);
 
         if (e._parent != null)
             e = e.Clone();
@@ -184,19 +169,29 @@ public class Element : ICloneable
 
     public void RemoveChild(Element e)
     {
-        ArgumentNullException.ThrowIfNull(e);
+        ThrowHelper.ThrowIfNull(e);
 
         if (e._parent != this)
             return;
+
+        var namespaceURI = e.GetNamespace(e.Prefix);
 
         lock (_children)
         {
             _children.Remove(e);
             e._parent = null;
         }
+
+        if (namespaceURI != null)
+        {
+            if (e.Prefix != null)
+                e.SetNamespace(e.Prefix, namespaceURI);
+            else
+                e.SetNamespace(namespaceURI);
+        }
     }
 
-    public void SetAttribute(string name, object? value, string? format = default, IFormatProvider? formatter = default)
+    public Element SetAttribute(string name, object? value, string? format = default, IFormatProvider? formatter = default)
     {
         ThrowHelper.ThrowIfNullOrWhiteSpace(name);
 
@@ -215,6 +210,8 @@ public class Element : ICloneable
                 _attributes[name] = rawValue ?? string.Empty;
             }
         }
+
+        return this;
     }
 
     public Element Clone()
@@ -240,34 +237,6 @@ public class Element : ICloneable
             return _attributes.GetValueOrDefault(name);
     }
 
-#if NET7_0_OR_GREATER
-
-    public T GetAttribute<T>(string name, T defaultValue, IFormatProvider? formatter = default) where T : IParsable<T>
-    {
-        formatter ??= CultureInfo.InvariantCulture;
-
-        var attrVal = GetAttribute(name);
-
-        if (!T.TryParse(attrVal, formatter, out var result))
-            return defaultValue;
-
-        return result;
-    }
-
-    public T? GetAttribute<T>(string name, IFormatProvider? formatter = default) where T : struct, IParsable<T>
-    {
-        formatter ??= CultureInfo.InvariantCulture;
-
-        var attrVal = GetAttribute(name);
-
-        if (!T.TryParse(attrVal, formatter, out var result))
-            return default;
-
-        return result;
-    }
-
-#endif
-
     public void RemoveAttribute(string name)
     {
         ThrowHelper.ThrowIfNullOrWhiteSpace(name);
@@ -288,14 +257,14 @@ public class Element : ICloneable
 
     public void SetNamespace(string? namespaceURI)
     {
-        ArgumentNullException.ThrowIfNull(namespaceURI);
+        ThrowHelper.ThrowIfNull(namespaceURI);
         SetAttribute("xmlns", namespaceURI);
     }
 
     public void SetNamespace(string prefix, string? namespaceURI)
     {
         ThrowHelper.ThrowIfNullOrWhiteSpace(prefix);
-        ArgumentNullException.ThrowIfNull(namespaceURI);
+        ThrowHelper.ThrowIfNull(namespaceURI);
         SetAttribute($"xmlns:{prefix}", namespaceURI);
     }
 
@@ -376,7 +345,7 @@ public class Element : ICloneable
     public string EndTag()
         => $"</{Xml.EncodeName(TagName)}>";
 
-    public override string ToString() => ToString(false);
+    public sealed override string ToString() => ToString(false);
 
     public string ToString(bool indented)
     {
@@ -448,4 +417,41 @@ public class Element : ICloneable
 
     public void RemoveTag(string tagName, string? namespaceURI = default)
         => Child(tagName, namespaceURI)?.Remove();
+
+    public void RemoveTags(string tagName, string? namespaceURI = default)
+        => Children(tagName, namespaceURI).Remove();
+
+    public string? GetTag(string tagName, string? namespaceURI = default)
+        => Child(tagName, namespaceURI)?.Value;
+
+    public T? Child<T>() where T : Element
+        => Children().OfType<T>().FirstOrDefault();
+
+    public IEnumerable<T> Children<T>() where T : Element
+        => Children().OfType<T>();
+
+    public void ClearAttributes()
+    {
+        lock (_attributes)
+        {
+            var allKeys = _attributes.Keys.Where(x => !x.Contains("xmlns"));
+
+            foreach (var key in allKeys)
+                _attributes.Remove(key);
+        }
+    }
+
+    public void ClearChildren()
+    {
+        Element[] items;
+
+        lock (_children)
+        {
+            items = _children.ToArray();
+            _children.Clear();
+        }
+
+        foreach (var item in items)
+            item._parent = null;
+    }
 }

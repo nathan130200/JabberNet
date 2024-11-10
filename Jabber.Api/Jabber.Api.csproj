@@ -7,8 +7,4 @@
 		<RootNamespace>Jabber</RootNamespace>
 	</PropertyGroup>
 
-	<ItemGroup>
-	  <Folder Include="Protocol\Extensions\MultiUserChat\" />
-	</ItemGroup>
-
 </Project>

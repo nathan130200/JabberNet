@@ -14,5 +14,5 @@ public enum XmlFormatting
     Default
         = OmitDuplicatedNamespaces
         | OmitXmlDeclaration
-        | CheckCharacters
+        | CheckCharacters,
 }
