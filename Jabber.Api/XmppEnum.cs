@@ -1,5 +1,5 @@
-﻿using System.Reflection;
-using Jabber.Attributes;
+﻿using Jabber.Attributes;
+using System.Reflection;
 
 namespace Jabber;
 
@@ -23,12 +23,12 @@ public static class XmppEnum
 
             var fields = from field in typeof(T).GetFields()
                          where field.FieldType == typeof(T)
-                         let attribute = field.GetCustomAttribute<XmppEnumMemberAttribute>()
+                         let attribute = field.GetCustomAttribute<XmppMemberAttribute>()
                          select new
                          {
                              field.Name,
                              Value = (T)field.GetValue(null)!,
-                             XmlName = attribute?.Name
+                             XmlName = attribute?.Value
                          };
 
             s_NameToValue = fields.ToDictionary(x => x.Name, x => x.Value);
@@ -47,14 +47,18 @@ public static class XmppEnum
     public static IEnumerable<string> GetXmlNames<T>() where T : struct, Enum
         => Cache<T>.s_XmlToValue.Select(x => x.Key);
 
+    public static IReadOnlyDictionary<string, T> GetNameMapping<T>() where T : struct, Enum
+        => Cache<T>.s_NameToValue;
+
+    public static IReadOnlyDictionary<string, T> GetXmlMapping<T>() where T : struct, Enum
+        => Cache<T>.s_XmlToValue;
+
     public static string? ToXml<T>(T? value) where T : struct, Enum
     {
-        if (value == null)
+        if (!value.HasValue)
             return default;
 
-        var contract = Cache<T>.s_EqualityContract;
-        var entry = Cache<T>.s_XmlToValue.FirstOrDefault(x => contract.Equals(x.Value, (T)value));
-        return entry.Key;
+        return ToXml((T)value);
     }
 
     public static string? ToXml<T>(T value) where T : struct, Enum

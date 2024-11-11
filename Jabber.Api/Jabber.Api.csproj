@@ -7,4 +7,8 @@
 		<RootNamespace>Jabber</RootNamespace>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <Folder Include="Protocol\Features\" />
+	</ItemGroup>
+
 </Project>

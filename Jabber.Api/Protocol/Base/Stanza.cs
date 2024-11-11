@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Jabber.Dom;
 
 namespace Jabber.Protocol.Base;
 
@@ -33,8 +32,18 @@ public abstract class Stanza : DirectionalElement
         set => SetAttribute("xml:lang", value);
     }
 
-    public void GenerateId()
+    public void GenerateId(IdGenerator? generator = default)
+        => Id = (generator ?? IdGenerator.Timestamp).Generate();
+
+    public StanzaError? Error
     {
-        Id = Guid.NewGuid().ToString("D");
+        get => Child<StanzaError>();
+        set
+        {
+            Child<StanzaError>()?.Remove();
+
+            if (value != null)
+                AddChild(value);
+        }
     }
 }

@@ -3,7 +3,6 @@
 [Flags]
 public enum StartTlsPolicy
 {
-    None,
     Optional,
     Required
 }

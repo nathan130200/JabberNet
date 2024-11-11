@@ -5,15 +5,15 @@ namespace Jabber.Protocol;
 [XmppEnum]
 public enum IqType
 {
-    [XmppEnumMember("error")]
+    [XmppMember("error")]
     Error,
 
-    [XmppEnumMember("get")]
+    [XmppMember("get")]
     Get,
 
-    [XmppEnumMember("set")]
+    [XmppMember("set")]
     Set,
 
-    [XmppEnumMember("result")]
+    [XmppMember("result")]
     Result
 }

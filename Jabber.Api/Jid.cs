@@ -1,14 +1,19 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using Jabber.Collections;
+using System.Diagnostics;
 using System.Text;
+
+#if NET7_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 
 namespace Jabber;
 
 [DebuggerDisplay("{ToString(),nq}")]
-public record Jid
+public sealed record Jid :
+    IEquatable<Jid>
 
 #if NET7_0_OR_GREATER
-    : IParsable<Jid>
+    , IParsable<Jid>
 #endif
 
 {
@@ -38,13 +43,13 @@ public record Jid
     public string? Local
     {
         get => _local;
-        set => _local = value;
+        init => _local = value;
     }
 
     public string Domain
     {
         get => _domain;
-        set
+        init
         {
             if (!string.IsNullOrWhiteSpace(value))
             {
@@ -59,7 +64,7 @@ public record Jid
     public string? Resource
     {
         get => _resource;
-        set => _resource = value;
+        init => _resource = value;
     }
 
     public override string ToString()
@@ -89,11 +94,22 @@ public record Jid
     }
 
     public bool IsBare => string.IsNullOrWhiteSpace(_resource);
+    public Jid Bare => this with { Resource = null };
 
-    public Jid Bare => this with
+    public bool Equals(Jid? other)
     {
-        _resource = null
-    };
+        if (other is null)
+            return false;
+
+        return FullJidComparer.Shared.Compare(this, other) == 0;
+    }
+
+    public override int GetHashCode() => HashCode.Combine
+    (
+        Local?.GetHashCode() ?? 0,
+        Domain?.GetHashCode() ?? 0,
+        Resource?.GetHashCode() ?? 0
+    );
 
 #if NET7_0_OR_GREATER
 

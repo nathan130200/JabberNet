@@ -17,7 +17,7 @@ public class StartTls : Element
         {
             StartTlsPolicy result;
 
-            if (HasTag("required"))
+            if (HasTag("required", Namespaces.Tls))
                 result = StartTlsPolicy.Required;
             else
                 result = StartTlsPolicy.Optional;

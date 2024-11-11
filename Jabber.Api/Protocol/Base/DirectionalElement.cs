@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using Jabber.Dom;
+﻿using Jabber.Dom;
+using System.Runtime.CompilerServices;
 
 namespace Jabber.Protocol.Base;
 
