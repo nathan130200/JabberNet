@@ -1,12 +1,12 @@
 ﻿using Jabber.Attributes;
 using Jabber.Dom;
 
-namespace Jabber.Protocol.Extensions.XEP0030;
+namespace Jabber.Protocol.Extensions.XEP0045;
 
-[XmppTag("query", Namespaces.DiscoItems)]
-public class DiscoItems : Element
+[XmppTag("query", Namespaces.MucAdmin)]
+public class MucAdmin : Element
 {
-    public DiscoItems() : base("query", Namespaces.DiscoItems)
+    public MucAdmin() : base("query", Namespaces.MucAdmin)
     {
 
     }
@@ -21,7 +21,10 @@ public class DiscoItems : Element
             if (value?.Any() == true)
             {
                 foreach (var item in value)
-                    AddChild(item);
+                {
+                    if (item != null)
+                        AddChild(item);
+                }
             }
         }
     }

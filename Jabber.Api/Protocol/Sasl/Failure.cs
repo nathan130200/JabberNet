@@ -44,9 +44,9 @@ public class Failure : Element
         get => GetTag("text", Namespaces.Sasl);
         set
         {
-            if (value == null)
-                RemoveTag("text", Namespaces.Sasl);
-            else
+            RemoveTag("text", Namespaces.Sasl);
+
+            if (value != null)
                 SetTag("text", Namespaces.Sasl);
         }
     }

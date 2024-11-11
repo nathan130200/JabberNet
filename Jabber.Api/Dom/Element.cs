@@ -229,6 +229,14 @@ public class Element : ICloneable
         return result;
     }
 
+    public bool HasAttribute(string name)
+    {
+        ThrowHelper.ThrowIfNullOrWhiteSpace(name);
+
+        lock (_attributes)
+            return _attributes.ContainsKey(name);
+    }
+
     public string? GetAttribute(string name)
     {
         ThrowHelper.ThrowIfNullOrWhiteSpace(name);

@@ -46,9 +46,9 @@ public class StreamError : Element
         get => GetTag("text", Namespaces.Streams);
         set
         {
-            if (value == null)
-                RemoveTag("text", Namespaces.Streams);
-            else
+            RemoveTag("text", Namespaces.Streams);
+
+            if (value != null)
                 SetTag("text", Namespaces.Streams, value);
         }
     }

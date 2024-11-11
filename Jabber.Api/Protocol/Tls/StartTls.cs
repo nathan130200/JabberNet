@@ -26,7 +26,8 @@ public class StartTls : Element
         }
         set
         {
-            ClearChildren();
+            RemoveTag("optional");
+            RemoveTag("required");
 
             if (value == StartTlsPolicy.Required)
                 SetTag("required", Namespaces.Tls);

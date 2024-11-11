@@ -81,9 +81,9 @@ public class StanzaError : Element
         get => GetTag("text", Namespaces.Stanzas);
         set
         {
-            if (value == null)
-                RemoveTag("text", Namespaces.Stanzas);
-            else
+            RemoveTag("text", Namespaces.Stanzas);
+
+            if (value != null)
                 SetTag("text", Namespaces.Stanzas, value);
         }
     }

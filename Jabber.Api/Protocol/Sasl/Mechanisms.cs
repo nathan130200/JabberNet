@@ -23,11 +23,13 @@ public class Mechanisms : Element
         {
             ThrowHelper.ThrowIfNull(value);
 
-            Children<Mechanisms>()
-                .Remove();
+            Children<Mechanisms>()?.Remove();
 
-            foreach (var item in value)
-                AddChild(item);
+            if (value?.Any() == true)
+            {
+                foreach (var item in value)
+                    AddChild(item);
+            }
         }
     }
 

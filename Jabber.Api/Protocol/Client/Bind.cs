@@ -22,9 +22,9 @@ public class Bind : Element
         get => GetTag("resource");
         set
         {
-            if (value == null)
-                RemoveTag("resource");
-            else
+            RemoveTag("resource");
+
+            if (value != null)
                 SetTag("resource", value: value);
         }
     }
@@ -34,9 +34,9 @@ public class Bind : Element
         get => GetTag("jid");
         set
         {
-            if (value == null)
-                RemoveTag("jid");
-            else
+            RemoveTag("jid");
+
+            if (value != null)
                 SetTag("jid", value: value.ToString());
         }
     }

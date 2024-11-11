@@ -22,8 +22,13 @@ public class DiscoInfo : Element
         get => Children<Identity>();
         set
         {
-            Identities.Remove();
-            value?.ForEach(AddChild);
+            Children<Identity>().Remove();
+
+            if (value.Any() == true)
+            {
+                foreach (var item in value)
+                    AddChild(item);
+            }
         }
     }
 
@@ -32,8 +37,13 @@ public class DiscoInfo : Element
         get => Children<Feature>();
         set
         {
-            Features.Remove();
-            value?.ForEach(AddChild);
+            Children<Feature>().Remove();
+
+            if (value.Any() == true)
+            {
+                foreach (var item in value)
+                    AddChild(item);
+            }
         }
     }
 }
